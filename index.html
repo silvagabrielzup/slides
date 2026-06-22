@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conformance Harness — proposta de trabalho</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E1A; --panel:#121829; --elev:#1A2236; --line:#263048; --line-soft:#1c2438;
+    --ink:#EEF1F8; --muted:#8893A8; --faint:#5a6478;
+    --gold:#F2B04A; --emerald:#3FD08C; --rose:#FB6B7E; --violet:#A98BF5; --sky:#5BA6F8;
+    --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --disp:'Space Grotesk',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg); color:var(--ink); font-family:var(--body); overflow:hidden; -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(900px 600px at 82% -10%, rgba(91,166,248,.06), transparent),
+                     radial-gradient(700px 500px at -5% 110%, rgba(242,176,74,.05), transparent);}
+
+  .deck{position:fixed; inset:0}
+  .slide{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+    padding:clamp(30px,5vw,80px) clamp(32px,6vw,92px); opacity:0; visibility:hidden;
+    transform:translateY(12px); transition:opacity .42s ease, transform .42s ease, visibility .42s;}
+  .slide.active{opacity:1; visibility:visible; transform:none}
+  .inner{width:100%; max-width:1180px; margin:0 auto}
+
+  .eyebrow{font-family:var(--mono); font-size:12.5px; font-weight:500; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--faint); display:flex; align-items:center; gap:13px}
+  .eyebrow .tick{width:24px; height:1px; background:var(--line)}
+  h1{font-family:var(--disp); font-weight:700; line-height:1.02; letter-spacing:-.02em}
+  h2{font-family:var(--disp); font-weight:700; line-height:1.06; letter-spacing:-.015em; font-size:clamp(27px,3.8vw,46px)}
+  .lead{font-size:clamp(14.5px,1.35vw,18.5px); color:var(--muted); line-height:1.55; max-width:64ch}
+  strong{color:var(--ink); font-weight:600}
+  .gold{color:var(--gold)} .em{color:var(--emerald)} .rose{color:var(--rose)} .vio{color:var(--violet)} .sky{color:var(--sky)}
+  .mono{font-family:var(--mono)}
+
+  .fname{font-family:var(--mono); font-size:12px; color:var(--muted); letter-spacing:.04em; margin-bottom:9px; display:flex; gap:9px; align-items:center}
+  .fname .sq{width:8px;height:8px;border-radius:2px;background:var(--gold);flex:0 0 auto}
+  .fname .sq.r{background:var(--rose)} .fname .sq.e{background:var(--emerald)} .fname .sq.v{background:var(--violet)} .fname .sq.s{background:var(--sky)}
+  .code{font-family:var(--mono); font-size:clamp(11px,1.1vw,14.5px); line-height:1.68;
+    background:var(--panel); border:1px solid var(--line); border-radius:13px; padding:18px 22px; white-space:pre; overflow:auto; color:var(--ink)}
+  .code .c{color:var(--faint)} .code .g{color:var(--gold)} .code .e{color:var(--emerald)} .code .b{color:var(--rose)}
+  .code .k{color:var(--sky)} .code .v{color:var(--violet)} .code .m{color:var(--muted)}
+
+  .split{display:grid; grid-template-columns:0.82fr 1.18fr; gap:36px; align-items:center; margin-top:24px}
+  .split .txt h2{margin-bottom:14px}
+  .split .txt .lead{font-size:clamp(13.5px,1.25vw,16.5px)}
+
+  .qtag{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; letter-spacing:.03em;
+    padding:6px 13px; border-radius:999px; border:1px solid var(--line); color:var(--muted); margin-top:20px}
+  .qtag.q1{border-color:rgba(63,208,140,.4); color:var(--emerald); background:rgba(63,208,140,.07)}
+  .qtag.q2{border-color:rgba(251,107,126,.4); color:var(--rose); background:rgba(251,107,126,.07)}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:28px}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-top:28px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:24px}
+  .card .num{font-family:var(--mono); font-size:12px; letter-spacing:.08em; color:var(--faint)}
+  .card h3{font-family:var(--disp); font-weight:600; font-size:20px; margin:10px 0 13px; letter-spacing:-.01em}
+  .card ul{list-style:none; display:flex; flex-direction:column; gap:10px}
+  .card li{font-family:var(--mono); font-size:12.5px; color:var(--muted); line-height:1.4; display:flex; gap:9px}
+  .card li::before{content:"›"; color:var(--faint)}
+  .card li b{color:var(--ink); font-weight:600; font-family:var(--disp)}
+  .card.green{border-top:3px solid var(--emerald)} .card.red{border-top:3px solid var(--rose)} .card.gold{border-top:3px solid var(--gold)}
+
+  .metrics{display:flex; gap:18px; flex-wrap:wrap; margin-top:26px}
+  .metric{display:flex; flex-direction:column; gap:5px; padding:18px 24px; background:var(--panel); border:1px solid var(--line); border-radius:13px}
+  .metric.green{border-top:3px solid var(--emerald)} .metric.gold{border-top:3px solid var(--gold)}
+  .metric .lab{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; color:var(--faint); text-transform:uppercase}
+  .metric .val{font-family:var(--disp); font-size:clamp(22px,2.7vw,36px); font-weight:700; letter-spacing:-.01em; line-height:1}
+  .metric .val .from{color:var(--faint); font-weight:500}
+  .metric .val .arr{color:var(--faint); font-weight:400; margin:0 6px}
+
+  .ladder{display:flex; align-items:flex-start; margin:30px 0 4px}
+  .ladder .ln{display:flex; flex-direction:column; align-items:center; gap:9px; text-align:center; flex:0 0 auto; width:clamp(78px,11vw,128px)}
+  .ladder .ld{width:14px;height:14px;border-radius:50%;background:var(--elev);border:1.5px solid var(--line)}
+  .ladder .ld.done{background:var(--emerald);border-color:var(--emerald);opacity:.45}
+  .ladder .ld.cur{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 5px rgba(242,176,74,.16)}
+  .ladder .ld.future{background:transparent;border-style:dashed;border-color:var(--faint)}
+  .ladder .lt{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--faint);line-height:1.35}
+  .ladder .lt.cur{color:var(--gold)} .ladder .lt.done{color:var(--muted)}
+  .ladder .lseg{height:2px;flex:1 1 auto;min-width:10px;background:var(--line);margin-top:6px}
+  .ladder .lseg.done{background:var(--emerald);opacity:.4}
+
+  .tbl{margin-top:24px; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--panel)}
+  .tbl .row{display:grid; grid-template-columns:170px 1fr; border-bottom:1px solid var(--line-soft)}
+  .tbl .row:last-child{border-bottom:none}
+  .tbl .h{font-family:var(--mono); font-size:12.5px; letter-spacing:.05em; padding:14px 20px; display:flex; align-items:center; gap:10px}
+  .tbl .h .d{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .tbl .d.e{background:var(--emerald)} .tbl .d.g{background:var(--gold)} .tbl .d.r{background:var(--rose)}
+  .tbl .v{padding:14px 20px; font-family:var(--mono); font-size:12.5px; color:var(--muted); line-height:1.5; border-left:1px solid var(--line-soft)}
+  .tbl .v b{color:var(--ink); font-weight:600}
+
+  ul.clean{list-style:none; margin-top:22px; display:flex; flex-direction:column; gap:13px}
+  ul.clean li{display:flex; gap:15px; align-items:flex-start; font-size:clamp(14px,1.3vw,17.5px); line-height:1.5; color:var(--muted)}
+  ul.clean li .n{font-family:var(--mono); font-size:13px; color:var(--faint); flex:0 0 auto; padding-top:3px; min-width:24px}
+  ul.clean li b{color:var(--ink)} ul.clean li .mono{color:var(--gold)}
+
+  .minimap{position:absolute; top:clamp(22px,4vh,42px); left:clamp(32px,6vw,92px); right:clamp(32px,6vw,92px); display:flex; align-items:center; z-index:5}
+  .minimap .mb{font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; color:var(--faint); padding:5px 8px; border:1px solid var(--line-soft); border-radius:6px; white-space:nowrap}
+  .minimap .mb.on{color:var(--bg); background:var(--gold); border-color:var(--gold); font-weight:600}
+  .minimap .ms{width:clamp(6px,1.4vw,20px); height:1px; background:var(--line-soft); flex:0 0 auto}
+
+  .hud{position:fixed; bottom:0; left:0; right:0; height:48px; display:flex; align-items:center; justify-content:space-between; padding:0 clamp(20px,4vw,44px); font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.05em; z-index:10}
+  .hud .ctrl{display:flex; align-items:center; gap:15px}
+  .hud button{background:none; border:1px solid var(--line); color:var(--muted); width:33px; height:29px; border-radius:7px; cursor:pointer; font-family:var(--mono); font-size:15px; transition:.2s}
+  .hud button:hover{border-color:var(--gold); color:var(--gold)}
+  .hud button:focus-visible{outline:2px solid var(--sky); outline-offset:2px}
+  .hud .count{min-width:54px; text-align:center; color:var(--muted)}
+  .pbar{position:fixed; top:0; left:0; height:2px; background:var(--gold); z-index:20; transition:width .4s ease}
+
+  .rail{display:flex; align-items:center; margin:42px 0 0}
+  .rail .node{display:flex; flex-direction:column; align-items:center; gap:9px}
+  .rail .dot{width:13px; height:13px; border-radius:50%; background:var(--elev); border:1.5px solid var(--line); transition:all .4s}
+  .rail .dot.lit{background:var(--emerald); border-color:var(--emerald); box-shadow:0 0 14px rgba(63,208,140,.5)}
+  .rail .seg{height:2px; width:clamp(22px,4.4vw,62px); background:var(--line); position:relative; margin-top:-22px}
+  .rail .seg::after{content:""; position:absolute; inset:0; width:0; background:var(--emerald); transition:width .4s}
+  .rail .seg.lit::after{width:100%}
+  .rail .lbl{font-family:var(--mono); font-size:9.5px; letter-spacing:.07em; color:var(--faint); text-transform:uppercase}
+  .rail .lbl.lit{color:var(--muted)}
+
+  @media (max-width:860px){ .split,.grid2,.grid3{grid-template-columns:1fr; gap:18px} .minimap,.rail .lbl,.ladder .lt{display:none} .tbl .row{grid-template-columns:120px 1fr} }
+  @media (prefers-reduced-motion:reduce){ .slide{transition:opacity .01s} *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="pbar" id="pbar"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 · COVER -->
+  <section class="slide active">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Proposta de trabalho · baseada na auditoria de 2026-06-22 · portal</div>
+      <h1 style="margin-top:22px; font-size:clamp(38px,6.6vw,88px)">Conformance Harness</h1>
+      <p class="lead" style="margin-top:22px; font-size:clamp(15px,1.6vw,21px); max-width:60ch">
+        Um catálogo gerado do código (<span class="gold mono">component.json</span> · <span class="gold mono">inventory.json</span> · <span class="gold mono">tokens.json</span>) alimenta a geração e a validação. Mesma fonte, dois usos: impedir que se gere fora do padrão, e barrar o que escapar.</p>
+      <div class="rail" id="coverRail">
+        <div class="node"><div class="dot" data-i="0"></div><div class="lbl" data-i="0">harvester</div></div>
+        <div class="seg" data-i="0"></div>
+        <div class="node"><div class="dot" data-i="1"></div><div class="lbl" data-i="1">spec</div></div>
+        <div class="seg" data-i="1"></div>
+        <div class="node"><div class="dot" data-i="2"></div><div class="lbl" data-i="2">geração</div></div>
+        <div class="seg" data-i="2"></div>
+        <div class="node"><div class="dot" data-i="3"></div><div class="lbl" data-i="3">gates+agentes</div></div>
+        <div class="seg" data-i="3"></div>
+        <div class="node"><div class="dot" data-i="4"></div><div class="lbl" data-i="4">trust report</div></div>
+        <div class="seg" data-i="4"></div>
+        <div class="node"><div class="dot" data-i="5"></div><div class="lbl" data-i="5">loop</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · THE PROBLEM -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>O problema · de onde viemos</div>
+      <div class="split">
+        <div class="txt">
+          <h2>Fora do padrão.</h2>
+          <p class="lead">Três falhas no mesmo trecho: valor cru em vez de token, <span class="mono">&lt;nav&gt;</span> reimplementando um componente que já existe, e markup sem o design system.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq r"></span>gerado.tsx — fora do padrão</div>
+<div class="code"><span class="b">&lt;div</span> style=<span class="b">{{ padding: '16px', color: '#1A2236' }}</span><span class="b">&gt;</span>
+  <span class="b">&lt;nav</span> className=<span class="b">"crumbs"</span><span class="b">&gt;</span>
+    {trail.map(t =&gt; <span class="b">&lt;a</span> href={t.url}<span class="b">&gt;</span>{t.label}<span class="b">&lt;/a&gt;</span>)}
+  <span class="b">&lt;/nav&gt;</span>
+<span class="b">&lt;/div&gt;</span>
+<span class="c">// #1A2236 já é color.text.default · 16px já é space.4</span>
+<span class="c">// &lt;Breadcrumb&gt; já existe em @mp/ui</span></div>
+          <div class="fname" style="margin-top:14px"><span class="sq e"></span>no padrão</div>
+<div class="code"><span class="k">&lt;Stack</span> p=<span class="e">"space.4"</span> color=<span class="e">"text.default"</span><span class="k">&gt;</span>
+  <span class="v">&lt;Breadcrumb</span> items={trail} <span class="v">/&gt;</span>
+<span class="k">&lt;/Stack&gt;</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHY IT PASSED -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Por que passava pelo radar</div>
+      <div class="split">
+        <div class="txt">
+          <h2>O código <span class="rose">roda</span>.</h2>
+          <p class="lead">Todos os checks de correção passam. Nenhum perguntava "isso usa o que já temos?". <strong>Correção não é conformidade</strong> — e só conformidade pega esses três casos.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq"></span>ci · pull request</div>
+<div class="code"><span class="m">$ ci run</span>
+<span class="e">✓ tsc</span><span class="m">          0 erros</span>
+<span class="e">✓ vitest</span><span class="m">       passed</span>
+<span class="e">✓ render</span><span class="m">       ok</span>
+<span class="b">─────────────────────────</span>
+<span class="b">✗ está no padrão?   ninguém perguntava</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · SKILLS ROT / PRINCIPLE -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>O problema de raiz · a guidance apodrecia</div>
+      <div class="split">
+        <div class="txt">
+          <h2>A skill define a regra.<br>O script, o <span class="gold">inventário</span>.</h2>
+          <p class="lead">A skill de design system <strong>embutia tokens e props</strong>. A cada PR desatualizava e passava a informar o agente errado.</p>
+          <p class="lead" style="margin-top:13px">Agora a skill carrega só o <strong class="em">porquê</strong> e o <strong class="em">como</strong>. As minúcias saem do <span class="mono gold">harvester.mjs</span>. A skill <strong>referencia o output</strong>, não o copia.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq r"></span>skill rígida — apodrece</div>
+<div class="code"><span class="c"># tokens e props embutidos</span>
+color.text.default: <span class="b">#1A2236</span>   <span class="b">← mentira quando muda</span>
+componentes:
+  <span class="b">Breadcrumb(items, separator)</span>  <span class="b">← obsoleta a cada PR</span></div>
+          <div class="fname" style="margin-top:14px"><span class="sq e"></span>skill = regra + referência</div>
+<div class="code"><span class="k">PORQUÊ</span>   consistência visual e acessível
+<span class="k">COMO</span>     sempre token · nunca valor cru · reuse @mp/ui
+<span class="k">INVENTÁRIO</span> → <span class="e">.cache/{tokens,inventory}.json</span>
+             <span class="m">gerado por harvest.mjs · sempre atual</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · TWO QUESTIONS -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>A proposta resolve duas perguntas</div>
+      <div class="grid2">
+        <div class="card green">
+          <div class="num">01 · NA GERAÇÃO</div>
+          <h3 class="em">Impedir que ele gere fora do padrão</h3>
+          <ul>
+            <li>o gerador recebe <b>inventory.json</b> + <b>tokens.json</b> no contexto</li>
+            <li>regra no prompt: reuso-first, token-first</li>
+          </ul>
+        </div>
+        <div class="card red">
+          <div class="num">02 · NA VERIFICAÇÃO</div>
+          <h3 class="rose">Impedir que código fora do padrão passe</h3>
+          <ul>
+            <li>gates determinísticos comparam contra os mesmos arquivos</li>
+            <li>agentes LLM pegam o que regra estática não vê</li>
+          </ul>
+        </div>
+      </div>
+      <p class="lead" style="margin-top:24px">As duas respostas saem do mesmo artefato. E grande parte disso <strong class="gold">já existe</strong> — em 3 dias.</p>
+    </div>
+  </section>
+
+  <!-- 6 · PROOF: 3 DAYS, LEVEL 2 -> 3 -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>O que construímos · verificado em 3 dias</div>
+      <h2 style="margin-top:10px">De disciplina em prosa para <span class="gold">contratos + enforcement</span></h2>
+      <div class="metrics">
+        <div class="metric gold"><span class="lab">Amadurecimento AI-First</span><span class="val"><span class="from">2,5</span><span class="arr">→</span>3,3 <span class="from" style="font-size:.6em">/ 5</span></span></div>
+        <div class="metric green"><span class="lab">AI-First real</span><span class="val"><span class="from">35%</span><span class="arr">→</span>58%</span></div>
+        <div class="metric green"><span class="lab">Salto</span><span class="val" style="font-size:clamp(16px,1.6vw,22px); padding-top:6px">Nível 2 → Nível 3</span></div>
+      </div>
+      <div class="ladder">
+        <div class="ln"><div class="ld done"></div><div class="lt done">1 · ad-hoc</div></div>
+        <div class="lseg done"></div>
+        <div class="ln"><div class="ld done"></div><div class="lt done">2 · prosa</div></div>
+        <div class="lseg done"></div>
+        <div class="ln"><div class="ld cur"></div><div class="lt cur">3 · contratos + enforcement</div></div>
+        <div class="lseg"></div>
+        <div class="ln"><div class="ld future"></div><div class="lt">4 · loop spec→tela</div></div>
+        <div class="lseg"></div>
+        <div class="ln"><div class="ld future"></div><div class="lt">5 · AI-first autônomo</div></div>
+      </div>
+<div class="code" style="margin-top:24px"><span class="g">#2592</span>  canonicalização DS → tokens.json / component.json
+<span class="g">#2629</span>  camada machine-readable  (harvester.mjs)
+<span class="g">#2656</span>  tokens.json gerado de tokens.css  (direção css→json)
+<span class="g">#2640</span>  enforcement por lint  (i18n · cor · token = <span class="b">error</span>)
+<span class="g">#2661</span>  frota de 3 review-agents  (conformance/perf/security)</div>
+    </div>
+  </section>
+
+  <!-- 7 · STAGE 0 (real) -->
+  <section class="slide" data-stage="0">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Etapa 0 · fundação · #2629 #2656</div>
+      <div class="split">
+        <div class="txt">
+          <h2>O catálogo já é<br>legível por máquina</h2>
+          <p class="lead"><span class="mono gold">harvester.mjs</span> é determinístico (sem <span class="mono">Date</span>/random). O contrato de anatomia é hand-authored; o resto é gerado do filesystem via react-docgen + cva.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq"></span>.cache/ — gerado, não editado à mão</div>
+<div class="code"><span class="e">component.json</span>   <span class="m">535 linhas · contrato de anatomia (hand-authored)</span>
+<span class="e">inventory.json</span>   <span class="m">84 KB · react-docgen + cva (gerado do FS)</span>
+<span class="e">tokens.json</span>      <span class="m">27 KB · DTCG / OKLCH (gerado de tokens.css)</span></div>
+          <div class="fname" style="margin-top:14px"><span class="sq"></span>inventory.json — entrada</div>
+<div class="code"><span class="m">{</span> <span class="k">"name"</span>:<span class="g">"Badge"</span>, <span class="k">"import"</span>:<span class="g">"@mp/ui"</span>,
+  <span class="k">"variants"</span>:[<span class="g">"default"</span>,<span class="g">"secondary"</span>,<span class="g">"outline"</span>,<span class="g">"destructive"</span>,<span class="g">"success"</span>] <span class="m">}</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · STAGE 1 typed spec (the missing piece) -->
+  <section class="slide" data-stage="1">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Etapa 1 · agentes de escrita · <span class="rose">ainda falta</span></div>
+      <div class="split">
+        <div class="txt">
+          <h2>Typed spec, não prosa</h2>
+          <p class="lead">O <span class="mono">docs/stacks/frontend.md</span> já fixa a convenção de stack. O que falta é o <strong>template de spec de UI</strong> (estados · inventário · tokens · a11y · i18n) que faz <em>bind</em> ao catálogo.</p>
+          <p class="lead" style="margin-top:13px">É uma das duas peças que separam o time do Nível 4.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq v"></span>assets-catalog.spec.json — o alvo</div>
+<div class="code"><span class="m">{</span>
+  <span class="k">"screen"</span>: <span class="g">"AssetsCatalog"</span>,
+  <span class="k">"uses"</span>: [
+    <span class="m">{</span> <span class="k">"component"</span>:<span class="g">"Breadcrumb"</span>, <span class="k">"from"</span>:<span class="g">"@mp/ui"</span> <span class="m">}</span>,
+    <span class="m">{</span> <span class="k">"component"</span>:<span class="g">"DataTable"</span>,  <span class="k">"from"</span>:<span class="g">"@mp/ui"</span> <span class="m">}</span>
+  ],
+  <span class="k">"tokens"</span>: <span class="m">{</span> <span class="k">"gap"</span>:<span class="g">"space.4"</span> <span class="m">}</span>,
+  <span class="k">"gaps"</span>: [<span class="b">"filtro por status: comportamento indefinido"</span>]
+<span class="m">}</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · STAGE 2 grounding -->
+  <section class="slide" data-stage="2">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Etapa 2 · agentes de criação</div>
+      <div class="split">
+        <div class="txt">
+          <h2>Geração com grounding</h2>
+          <p class="lead">O <span class="mono">inventory.json</span> entra no contexto. "Reuso-first" deixa de ser texto solto no CLAUDE.md e vira a lista de componentes que o agente enxerga.</p>
+          <span class="qtag q1">↳ responde a Pergunta 01</span>
+        </div>
+        <div>
+          <div class="fname"><span class="sq s"></span>contexto injetado na geração</div>
+<div class="code"><span class="c"># gerado por harvest.mjs — não editar</span>
+<span class="k">componentes</span> disponíveis  → inventory.json
+<span class="k">tokens</span> disponíveis       → tokens.json
+
+<span class="g">REGRAS</span>
+  1. nunca use valor cru se existe token
+  2. nunca crie componente que já exista
+  3. implemente contra o .spec.json, não além</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · STAGE 3a gates (real rules) -->
+  <section class="slide" data-stage="3">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Etapa 3 · gates determinísticos · #2640</div>
+      <div class="split">
+        <div class="txt">
+          <h2>Três regras já <span class="em">quebram o lint</span></h2>
+          <p class="lead">O que antes era prosa hoje é error-level. <span class="rose">Mas roda só na máquina do dev</span> — o CI ainda é advisory. Esse é o gap nº 1.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq e"></span>eslint.config.js · .oxlintrc.json</div>
+<div class="code"><span class="e">error</span>  i18next/no-literal-string         <span class="m">:62</span>
+<span class="e">error</span>  @metamask/.../color-no-hex        <span class="m">:64</span>
+<span class="e">error</span>  tailwindcss/no-hardcoded-colors   <span class="m">oxlint</span>
+<span class="e">error</span>  jsx-a11y/recommended
+<span class="c">// :57 — "resolve o P0-1 do report.md"</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · STAGE 3b review fleet (real, N5) -->
+  <section class="slide" data-stage="3">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Etapa 3 · frota de review-agents · #2661</div>
+      <div class="split">
+        <div class="txt">
+          <h2>Revisão multi-lente,<br>em paralelo</h2>
+          <p class="lead">Três reviewers <span class="mono">opus</span> read-only que pegam o que regra estática não vê. <span class="rose">Hoje advisory</span> — falta promover a gate com <span class="mono">--fail-on</span>.</p>
+          <span class="qtag q2">↳ responde a Pergunta 02</span>
+        </div>
+        <div>
+          <div class="fname"><span class="sq r"></span>scripts/review-agents.mjs</div>
+<div class="code"><span class="m">$ npm run review:agents</span>  <span class="c"># claude -p --agent, paralelo</span>
+<span class="r">conformance</span>   bate com spec? seguiu as skills?
+<span class="r">performance</span>   n+1 · waterfall · re-render evitável
+<span class="r">security</span>      injection · PII · segredo em string
+<span class="m">→ reports em .cache/agentes-reports/   gate: --fail-on &lt;sev&gt;</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · GATE vs AGENT vs SIGNAL -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>A classificação que evita falso-positivo</div>
+      <h2 style="margin-top:10px">Cada checagem entra numa de três classes</h2>
+      <div class="tbl">
+        <div class="row"><div class="h"><span class="d e"></span>GATE</div><div class="v"><b>bloqueia · determinístico</b><br>tsc · i18n/no-literal-string · color-no-hex · no-hardcoded-colors · no-duplicate-component · naming vs registry</div></div>
+        <div class="row"><div class="h"><span class="d r"></span>AGENTE</div><div class="v"><b>julga · LLM (a frota #2661)</b><br>n+1 · waterfall · re-render evitável · injection · PII · conformidade com spec e skills</div></div>
+        <div class="row"><div class="h"><span class="d g"></span>SINAL</div><div class="v"><b>avisa, nunca bloqueia</b><br>complexidade ciclomática · re-render rate (react-scan) · churn</div></div>
+      </div>
+      <p class="lead" style="margin-top:18px">Regra: o que não for determinístico não vira gate. Gate com falso-positivo ensina o time a dar bypass — e o harness perde valor.</p>
+    </div>
+  </section>
+
+  <!-- 13 · INVERTED DRIFT (N2) -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>O alerta · o contrato também pode mentir</div>
+      <div class="split">
+        <div class="txt">
+          <h2>Drift <span class="rose">invertido</span></h2>
+          <p class="lead">O bug antigo era <strong>código sem doc</strong>. A refatoração introduziu o oposto: <strong>doc sem código</strong>. O <span class="mono">component.json</span> documenta um <span class="mono">toast</span> cuja pasta não existe.</p>
+          <p class="lead" style="margin-top:13px">Lição: <span class="mono">component.json</span> é hand-authored — então também precisa ser checado contra o filesystem.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq r"></span>o que a auditoria pegou</div>
+<div class="code"><span class="b">component.json</span>  documenta <span class="b">toast</span>  →  pasta toast/ <span class="b">AUSENTE</span>
+<span class="b">design.md</span>       linka components.md / content.md <span class="b">inexistentes</span>
+<span class="b">CLAUDE.md</span>       afirma mutationInvalidates "centralizado" <span class="b">(não está)</span>
+<span class="m">─────────────────────────────────────────</span>
+<span class="e">fix: gen:docgen:check falha se component.json ↔ pasta divergir</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · THE BOTTLENECK MOVED DOWN A FLOOR -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>O re-diagnóstico</div>
+      <h2 style="margin-top:10px">O gargalo não sumiu — <span class="gold">desceu de andar</span></h2>
+      <p class="lead" style="margin-top:14px">A causa antiga ("o agente recebe prosa que mente") foi atacada de frente. O gargalo desceu e mudou de natureza — agora são três:</p>
+      <div class="grid3">
+        <div class="card red">
+          <div class="num rose">GAP 1 · NO DISCO</div>
+          <h3 style="font-size:18px">O catálogo some no clone limpo</h3>
+          <ul><li><b>inventory/tokens gitignored</b> (.cache)</li><li>sem <span class="mono">prepare</span> hook</li><li>clone limpo → file-not-found</li></ul>
+        </div>
+        <div class="card red">
+          <div class="num rose">GAP 2 · NO GATE</div>
+          <h3 style="font-size:18px">Enforcement não protege o main</h3>
+          <ul><li>error-level só <b>local</b></li><li>CI advisory · NX lint = <span class="mono">echo SKIP</span></li><li>PR que viola i18n/token <b>mergeia</b></li></ul>
+        </div>
+        <div class="card red">
+          <div class="num rose">GAP 3 · NA GERAÇÃO</div>
+          <h3 style="font-size:18px">Falta o scaffold</h3>
+          <ul><li>insumos prontos: catálogo · frontend.md · enforcement</li><li>falta <span class="mono">/claude-design</span> + template de spec</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · SPEED / CONTROL -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Velocidade e controle vêm de lugares diferentes</div>
+      <div class="grid2">
+        <div class="card green">
+          <div class="num">VELOCIDADE</div>
+          <ul style="margin-top:12px">
+            <li>gates determinísticos rodam <b>em paralelo</b>, em segundos</li>
+            <li>reuso: não regerar os componentes que já existem</li>
+            <li>humano gasta julgamento no spec, não revisando hex à mão</li>
+          </ul>
+        </div>
+        <div class="card red">
+          <div class="num">CONTROLE</div>
+          <ul style="margin-top:12px">
+            <li>gate + agente + sinal cobrem correção, conformidade e risco</li>
+            <li>review-fleet = trilha de auditoria por PR</li>
+            <li>review humano só olha o que a máquina não prova</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 · NEXT WAVE (real plan) -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>A próxima onda · ordenada por desbloqueio × custo</div>
+      <h2 style="margin-top:10px">1–3 transformam o que já fizemos em <span class="gold">proteção do main</span></h2>
+      <ul class="clean">
+        <li><span class="n em">1</span><span><b>Enforcement vira gate</b> — required checks + matar o <span class="mono">echo SKIP</span> do NX + <span class="mono">review:agents --fail-on ALTO</span> + <span class="mono">gen:docgen:check</span> no CI. <span class="mono" style="color:var(--faint)">[S–M]</span></span></li>
+        <li><span class="n em">2</span><span><b>Bootstrap do catálogo</b> — <span class="mono">"prepare": "npm run gen:docgen"</span> + check no CI (ou commitar os artefatos). <span class="mono" style="color:var(--faint)">[S]</span></span></li>
+        <li><span class="n em">3</span><span><b>Sanear a doc</b> — implementar/remover <span class="mono">toast</span> · corrigir links mortos · remover claims falsos do CLAUDE.md. <span class="mono" style="color:var(--faint)">[S]</span></span></li>
+        <li><span class="n gold">4</span><span><b>Template de spec + scaffold</b> — PoC com <span class="mono">SpecUI</span> (custom generator → @mp/ui). Fecha o loop. <span class="mono" style="color:var(--faint)">[M–L]</span></span></li>
+        <li><span class="n" style="color:var(--faint)">5–6</span><span>extrair lógica de <span class="mono">execution-detail-page.tsx</span> (331 LOC) · feature tests + axe-core · regra <span class="mono">-container</span> · <span class="mono">noUncheckedIndexedAccess</span>.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 16b · SCAFFOLD POC WITH SPECUI -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Item 4 · PoC do scaffold · SpecUI</div>
+      <div class="split">
+        <div class="txt">
+          <h2>O scaffold, concreto:<br>spec → <span class="gold">SpecUI</span> → tela</h2>
+          <p class="lead">SpecUI é spec-first e framework-agnostic: lê um spec YAML/JSON/TS e emite código via <span class="mono">Generators</span> + <span class="mono">Templates</span> — determinístico, encaixa no nosso boundary.</p>
+          <p class="lead" style="margin-top:13px"><strong class="rose">O pulo do gato:</strong> o generator default emite tags cruas (<span class="mono">tag: button</span>) — o que combatemos. O PoC usa um <strong>generator customizado</strong> ligado ao <span class="mono">inventory.json</span> + <span class="mono">tokens.json</span>: o scaffold já nasce no padrão.</p>
+          <p class="lead" style="margin-top:13px; font-size:12.5px; color:var(--faint)">specui.org · open source</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq v"></span>assets-catalog.spec.yaml — entrada</div>
+<div class="code"><span class="k">screen</span>: AssetsCatalog
+<span class="k">route</span>: /assets-catalog
+<span class="k">tokens</span>: { gap: <span class="g">space.4</span> }
+<span class="k">elements</span>:
+  - <span class="v">use</span>: Breadcrumb   <span class="c"># resolve via inventory.json</span>
+    items: $trail
+  - <span class="v">use</span>: DataTable
+    columns: $cols</div>
+          <div class="fname" style="margin-top:14px"><span class="sq e"></span>gerado · custom generator → @mp/ui</div>
+<div class="code"><span class="c">// SpecUI · determinístico · só componentes do catálogo</span>
+<span class="v">import</span> { Stack, Breadcrumb, DataTable } <span class="v">from</span> <span class="g">'@mp/ui'</span>
+
+<span class="v">export function</span> <span class="k">AssetsCatalog</span>() {
+  <span class="v">return</span> (
+    <span class="k">&lt;Stack</span> p=<span class="e">"space.4"</span><span class="k">&gt;</span>
+      <span class="k">&lt;Breadcrumb</span> items={trail} <span class="k">/&gt;</span>
+      <span class="k">&lt;DataTable</span> columns={cols} <span class="k">/&gt;</span>
+    <span class="k">&lt;/Stack&gt;</span>
+  )
+}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 · CLOSE -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>O que separa do Nível 4</div>
+      <h2 style="margin-top:12px"><span class="em">Scaffold</span> + <span class="em">template de spec</span> + <span class="em">gates no CI</span>.</h2>
+      <p class="lead" style="margin-top:24px">A boa notícia: com catálogo, <span class="mono">frontend.md</span> e enforcement no lugar, o scaffold deixou de ser moonshot — virou <strong class="gold">trabalho de M</strong>. E o portal é read-only (<span class="mono">mutationInvalidates</span> vazio): o caso mais automatizável que temos.</p>
+      <p class="lead" style="margin-top:14px">Os mecanismos já existem. Falta <strong>ativá-los no gate</strong> e <strong>fechar a geração</strong>.</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="hud">
+  <span>conformance harness · proposta · v2</span>
+  <div class="ctrl">
+    <button id="prev" aria-label="Anterior">‹</button>
+    <span class="count" id="count">01 / 18</span>
+    <button id="next" aria-label="Próximo">›</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var n=slides.length, i=0;
+  var pbar=document.getElementById('pbar'), count=document.getElementById('count');
+  var reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function pad(x){return (x<10?'0':'')+x;}
+  (function minimaps(){
+    var stages=['0 harvester','1 spec','2 geração','3 gates+agentes','4 trust report','5 loop'];
+    slides.forEach(function(s){
+      if(!s.hasAttribute('data-stage'))return;
+      var cur=parseInt(s.getAttribute('data-stage'),10);
+      var mm=document.createElement('div'); mm.className='minimap';
+      stages.forEach(function(t,idx){
+        var b=document.createElement('span'); b.className='mb'+(idx===cur?' on':''); b.textContent=t; mm.appendChild(b);
+        if(idx<stages.length-1){var sep=document.createElement('span'); sep.className='ms'; mm.appendChild(sep);}
+      });
+      s.appendChild(mm);
+    });
+  })();
+  var coverDone=false;
+  function runCover(){
+    var dots=document.querySelectorAll('#coverRail .dot'), segs=document.querySelectorAll('#coverRail .seg'), lbls=document.querySelectorAll('#coverRail .lbl');
+    if(reduce){dots.forEach(d=>d.classList.add('lit'));lbls.forEach(l=>l.classList.add('lit'));segs.forEach(s=>s.classList.add('lit'));return;}
+    if(coverDone)return; coverDone=true;
+    dots.forEach(function(d,k){ setTimeout(function(){ d.classList.add('lit'); if(lbls[k])lbls[k].classList.add('lit'); if(segs[k])segs[k].classList.add('lit'); }, 340*k+220); });
+  }
+  function show(idx){
+    i=Math.max(0,Math.min(n-1,idx));
+    slides.forEach(function(s,k){s.classList.toggle('active',k===i);});
+    count.textContent=pad(i+1)+' / '+pad(n);
+    pbar.style.width=((i+1)/n*100)+'%';
+    if(i===0)runCover();
+  }
+  function next(){show(i+1);} function prev(){show(i-1);}
+  document.getElementById('next').addEventListener('click',next);
+  document.getElementById('prev').addEventListener('click',prev);
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home')show(0); else if(e.key==='End')show(n-1);
+  });
+  var x0=null;
+  document.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',function(e){ if(x0===null)return; var dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>50){dx<0?next():prev();} x0=null; },{passive:true});
+  show(0);
+})();
+</script>
+</body>
+</html>
