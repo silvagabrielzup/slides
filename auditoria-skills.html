@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoria de Skills — Portal mgmtplane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E1A; --panel:#121829; --elev:#1A2236; --line:#263048; --line-soft:#1c2438;
+    --ink:#EEF1F8; --muted:#8893A8; --faint:#5a6478;
+    --gold:#F2B04A; --emerald:#3FD08C; --rose:#FB6B7E; --violet:#A98BF5; --sky:#5BA6F8;
+    --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --disp:'Space Grotesk',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg); color:var(--ink); font-family:var(--body); overflow:hidden; -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(900px 600px at 82% -10%, rgba(91,166,248,.06), transparent),
+                     radial-gradient(700px 500px at -5% 110%, rgba(242,176,74,.05), transparent);}
+
+  .deck{position:fixed; inset:0}
+  .slide{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+    padding:clamp(30px,5vw,80px) clamp(32px,6vw,92px); opacity:0; visibility:hidden;
+    transform:translateY(12px); transition:opacity .42s ease, transform .42s ease, visibility .42s;}
+  .slide.active{opacity:1; visibility:visible; transform:none}
+  .inner{width:100%; max-width:1180px; margin:0 auto}
+
+  .eyebrow{font-family:var(--mono); font-size:12.5px; font-weight:500; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--faint); display:flex; align-items:center; gap:13px}
+  .eyebrow .tick{width:24px; height:1px; background:var(--line)}
+  h1{font-family:var(--disp); font-weight:700; line-height:1.02; letter-spacing:-.02em}
+  h2{font-family:var(--disp); font-weight:700; line-height:1.06; letter-spacing:-.015em; font-size:clamp(27px,3.8vw,46px)}
+  .lead{font-size:clamp(14.5px,1.35vw,18.5px); color:var(--muted); line-height:1.55; max-width:64ch}
+  strong{color:var(--ink); font-weight:600}
+  .gold{color:var(--gold)} .em{color:var(--emerald)} .rose{color:var(--rose)} .vio{color:var(--violet)} .sky{color:var(--sky)}
+  .mono{font-family:var(--mono)}
+
+  .fname{font-family:var(--mono); font-size:12px; color:var(--muted); letter-spacing:.04em; margin-bottom:9px; display:flex; gap:9px; align-items:center}
+  .fname .sq{width:8px;height:8px;border-radius:2px;background:var(--gold);flex:0 0 auto}
+  .fname .sq.r{background:var(--rose)} .fname .sq.e{background:var(--emerald)} .fname .sq.v{background:var(--violet)} .fname .sq.s{background:var(--sky)}
+  .code{font-family:var(--mono); font-size:clamp(11px,1.1vw,14px); line-height:1.66;
+    background:var(--panel); border:1px solid var(--line); border-radius:13px; padding:18px 22px; white-space:pre; overflow:auto; color:var(--ink)}
+  .code .c{color:var(--faint)} .code .g{color:var(--gold)} .code .e{color:var(--emerald)} .code .b{color:var(--rose)}
+  .code .k{color:var(--sky)} .code .v{color:var(--violet)} .code .m{color:var(--muted)}
+
+  .split{display:grid; grid-template-columns:0.9fr 1.1fr; gap:36px; align-items:center; margin-top:24px}
+  .split .txt h2{margin-bottom:14px}
+  .split .txt .lead{font-size:clamp(13.5px,1.25vw,16.5px)}
+
+  .qtag{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; letter-spacing:.03em;
+    padding:6px 13px; border-radius:999px; border:1px solid var(--line); color:var(--muted); margin-top:20px}
+  .qtag.q1{border-color:rgba(63,208,140,.4); color:var(--emerald); background:rgba(63,208,140,.07)}
+  .qtag.q2{border-color:rgba(251,107,126,.4); color:var(--rose); background:rgba(251,107,126,.07)}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:26px}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-top:26px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px}
+  .card .num{font-family:var(--mono); font-size:12px; letter-spacing:.08em; color:var(--faint)}
+  .card h3{font-family:var(--disp); font-weight:600; font-size:19px; margin:10px 0 13px; letter-spacing:-.01em}
+  .card ul{list-style:none; display:flex; flex-direction:column; gap:10px}
+  .card li{font-family:var(--mono); font-size:12px; color:var(--muted); line-height:1.42; display:flex; gap:9px}
+  .card li::before{content:"›"; color:var(--faint)}
+  .card li b{color:var(--ink); font-weight:600; font-family:var(--disp)}
+  .card.green{border-top:3px solid var(--emerald)} .card.red{border-top:3px solid var(--rose)}
+  .card.gold{border-top:3px solid var(--gold)} .card.sky{border-top:3px solid var(--sky)}
+
+  .metrics{display:flex; gap:16px; flex-wrap:wrap; margin-top:26px}
+  .metric{display:flex; flex-direction:column; gap:5px; padding:18px 24px; background:var(--panel); border:1px solid var(--line); border-radius:13px}
+  .metric.green{border-top:3px solid var(--emerald)} .metric.gold{border-top:3px solid var(--gold)}
+  .metric.red{border-top:3px solid var(--rose)} .metric.sky{border-top:3px solid var(--sky)}
+  .metric .lab{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; color:var(--faint); text-transform:uppercase}
+  .metric .val{font-family:var(--disp); font-size:clamp(22px,2.7vw,36px); font-weight:700; letter-spacing:-.01em; line-height:1}
+  .metric .val small{font-size:.5em; color:var(--faint); font-weight:500}
+
+  .tbl{margin-top:22px; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--panel)}
+  .tbl .row{display:grid; grid-template-columns:178px 1fr; border-bottom:1px solid var(--line-soft)}
+  .tbl .row:last-child{border-bottom:none}
+  .tbl .h{font-family:var(--mono); font-size:12.5px; letter-spacing:.05em; padding:14px 20px; display:flex; align-items:center; gap:10px}
+  .tbl .h .d{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .tbl .d.e{background:var(--emerald)} .tbl .d.g{background:var(--gold)} .tbl .d.r{background:var(--rose)} .tbl .d.s{background:var(--sky)}
+  .tbl .v{padding:14px 20px; font-family:var(--mono); font-size:12.5px; color:var(--muted); line-height:1.5; border-left:1px solid var(--line-soft)}
+  .tbl .v b{color:var(--ink); font-weight:600}
+
+  /* findings table */
+  .find{margin-top:18px; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--panel)}
+  .find .fr{display:grid; grid-template-columns:60px 24px 1fr; border-bottom:1px solid var(--line-soft)}
+  .find .fr:last-child{border-bottom:none}
+  .find .fid{font-family:var(--mono); font-size:11.5px; color:var(--faint); padding:11px 0 11px 16px; padding-top:13px}
+  .find .fsv{padding-top:14px; display:flex; justify-content:center}
+  .find .fsv i{width:8px;height:8px;border-radius:50%; display:inline-block}
+  .find i.r{background:var(--rose)} .find i.g{background:var(--gold)} .find i.s{background:var(--sky)} .find i.e{background:var(--emerald)}
+  .find .ftx{padding:10px 18px 10px 6px; font-size:12.5px; color:var(--muted); line-height:1.46}
+  .find .ftx b{color:var(--ink); font-weight:600}
+  .find .ftx .mm{font-family:var(--mono); color:var(--gold); font-size:11.5px}
+  .find .ftx .bad{color:var(--rose)}
+
+  .legend{display:flex; gap:20px; margin-top:14px; font-family:var(--mono); font-size:11px; color:var(--faint); flex-wrap:wrap}
+  .legend span{display:inline-flex; align-items:center; gap:7px}
+  .legend i{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .legend i.r{background:var(--rose)} .legend i.g{background:var(--gold)} .legend i.s{background:var(--sky)}
+
+  /* central problem diagram */
+  .diag{display:flex; flex-direction:column; align-items:stretch; gap:0; margin-top:4px}
+  .diag .srcs{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+  .diag .box{border:1px solid var(--line); border-radius:11px; padding:12px 14px; background:var(--panel);
+    font-family:var(--mono); font-size:11px; color:var(--muted); line-height:1.42}
+  .diag .box b{color:var(--ink); font-family:var(--disp); font-weight:600; font-size:12.5px; display:block; margin-bottom:4px; letter-spacing:-.01em}
+  .diag .box.bad{border-color:rgba(251,107,126,.5); background:rgba(251,107,126,.09)}
+  .diag .box.bad b{color:var(--rose)}
+  .diag .box.good{border-color:rgba(63,208,140,.45); background:rgba(63,208,140,.08)}
+  .diag .box.good b{color:var(--emerald)}
+  .diag .conn{align-self:center; display:flex; flex-direction:column; align-items:center; color:var(--faint); font-size:9px; font-family:var(--mono); letter-spacing:.04em}
+  .diag .conn .ln{width:1px; height:16px; background:var(--line)}
+  .diag .conn.dash .ln{background:repeating-linear-gradient(var(--faint) 0 3px, transparent 3px 7px)}
+  .diag .conn .ar{margin-top:-2px}
+
+  ul.clean{list-style:none; margin-top:20px; display:flex; flex-direction:column; gap:12px}
+  ul.clean li{display:flex; gap:15px; align-items:flex-start; font-size:clamp(13px,1.2vw,16px); line-height:1.46; color:var(--muted)}
+  ul.clean li .n{font-family:var(--mono); font-size:13px; color:var(--faint); flex:0 0 auto; padding-top:2px; min-width:30px}
+  ul.clean li b{color:var(--ink)} ul.clean li .mono{color:var(--gold)} ul.clean li .tag{color:var(--faint)}
+
+  ul.checks{list-style:none; margin-top:18px; display:grid; grid-template-columns:1fr 1fr; gap:11px 28px}
+  ul.checks li{display:flex; gap:11px; align-items:flex-start; font-family:var(--mono); font-size:12px; color:var(--muted); line-height:1.42}
+  ul.checks li::before{content:"✓"; color:var(--emerald); flex:0 0 auto; font-weight:600}
+  ul.checks li b{color:var(--ink); font-weight:600}
+
+  .hud{position:fixed; bottom:0; left:0; right:0; height:48px; display:flex; align-items:center; justify-content:space-between; padding:0 clamp(20px,4vw,44px); font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.05em; z-index:10}
+  .hud .ctrl{display:flex; align-items:center; gap:15px}
+  .hud button{background:none; border:1px solid var(--line); color:var(--muted); width:33px; height:29px; border-radius:7px; cursor:pointer; font-family:var(--mono); font-size:15px; transition:.2s}
+  .hud button:hover{border-color:var(--gold); color:var(--gold)}
+  .hud button:focus-visible{outline:2px solid var(--sky); outline-offset:2px}
+  .hud .count{min-width:54px; text-align:center; color:var(--muted)}
+  .pbar{position:fixed; top:0; left:0; height:2px; background:var(--gold); z-index:20; transition:width .4s ease}
+
+  .rail{display:flex; align-items:center; margin:42px 0 0}
+  .rail .node{display:flex; flex-direction:column; align-items:center; gap:9px}
+  .rail .dot{width:13px; height:13px; border-radius:50%; background:var(--elev); border:1.5px solid var(--line); transition:all .4s}
+  .rail .dot.lit{background:var(--emerald); border-color:var(--emerald); box-shadow:0 0 14px rgba(63,208,140,.5)}
+  .rail .seg{height:2px; width:clamp(18px,3.6vw,54px); background:var(--line); position:relative; margin-top:-22px}
+  .rail .seg::after{content:""; position:absolute; inset:0; width:0; background:var(--emerald); transition:width .4s}
+  .rail .seg.lit::after{width:100%}
+  .rail .lbl{font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; color:var(--faint); text-transform:uppercase}
+  .rail .lbl.lit{color:var(--muted)}
+
+  @media (max-width:860px){ .split,.grid2,.grid3,ul.checks,.diag .srcs{grid-template-columns:1fr; gap:16px} .rail .lbl{display:none} .tbl .row{grid-template-columns:130px 1fr} }
+  @media (prefers-reduced-motion:reduce){ .slide{transition:opacity .01s} *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="pbar" id="pbar"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 · COVER -->
+  <section class="slide active">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Auditoria · lente Staff Frontend / escalabilidade · 2026-06-23</div>
+      <h1 style="margin-top:22px; font-size:clamp(34px,6vw,80px)">Auditoria de Skills<br><span class="gold">Portal mgmtplane</span></h1>
+      <p class="lead" style="margin-top:22px; font-size:clamp(15px,1.55vw,20px); max-width:62ch">
+        As <em>skills</em> de IA do portal (<span class="gold mono">.claude/skills/</span>) e como o <span class="gold mono">CLAUDE.md</span> as costura. Foco: <strong>ambiguidades, falta de contexto e gaps de entendimento</strong>. Cada afirmação verificada contra o código — nada é especulação, nenhum arquivo foi alterado.</p>
+      <div class="rail" id="coverRail">
+        <div class="node"><div class="dot" data-i="0"></div><div class="lbl" data-i="0">wiring</div></div>
+        <div class="seg" data-i="0"></div>
+        <div class="node"><div class="dot" data-i="1"></div><div class="lbl" data-i="1">vendor</div></div>
+        <div class="seg" data-i="1"></div>
+        <div class="node"><div class="dot" data-i="2"></div><div class="lbl" data-i="2">design-sys</div></div>
+        <div class="seg" data-i="2"></div>
+        <div class="node"><div class="dot" data-i="3"></div><div class="lbl" data-i="3">a11y</div></div>
+        <div class="seg" data-i="3"></div>
+        <div class="node"><div class="dot" data-i="4"></div><div class="lbl" data-i="4">i18n</div></div>
+        <div class="seg" data-i="4"></div>
+        <div class="node"><div class="dot" data-i="5"></div><div class="lbl" data-i="5">orval</div></div>
+        <div class="seg" data-i="5"></div>
+        <div class="node"><div class="dot" data-i="6"></div><div class="lbl" data-i="6">drift</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · VEREDITO -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Veredito</div>
+      <h2 style="margin-top:10px">O conteúdo é bom.<br>O <span class="gold">sistema em volta</span> falha.</h2>
+      <p class="lead" style="margin-top:14px">As skills autorais (<span class="mono">design-system · a11y · i18n · shadcn-ui</span>) são pt-BR, opinativas, com decisões reais. Três falhas sistêmicas comprometem a escalabilidade:</p>
+      <div class="grid3">
+        <div class="card red">
+          <div class="num rose">FALHA 1</div>
+          <h3>Sem fonte de verdade resolvível para copy</h3>
+          <ul><li>toda a cadeia aponta para <b>content.md</b></li><li>o arquivo <b>não existe</b> → 404</li></ul>
+        </div>
+        <div class="card red">
+          <div class="num rose">FALHA 2</div>
+          <h3>Sem gate mantendo skill ↔ código</h3>
+          <ul><li>driftaram em <b>12+ pontos</b> verificados</li><li>sem lint, só piora</li></ul>
+        </div>
+        <div class="card red">
+          <div class="num rose">FALHA 3</div>
+          <h3>Vendorizadas competem sem precedência</h3>
+          <ul><li><b>orval</b> = doc upstream genérico</li><li><b>modern-web</b> se diz "MANDATORY FIRST"</li></ul>
+        </div>
+      </div>
+      <div class="metrics" style="margin-top:22px">
+        <div class="metric red"><span class="lab">High</span><span class="val">4 <small>· 7 IDs</small></span></div>
+        <div class="metric gold"><span class="lab">Medium</span><span class="val">12</span></div>
+        <div class="metric sky"><span class="lab">Low</span><span class="val">11</span></div>
+        <div class="metric"><span class="lab">Total dedup.</span><span class="val">27</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · PROBLEMA CENTRAL -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>O problema central · sistêmico</div>
+      <div class="split">
+        <div class="txt">
+          <h2>A trilha de copy<br>termina num <span class="rose">404</span></h2>
+          <p class="lead">A doc anuncia uma cadeia limpa: <em>"em conflito, as Diretrizes de Conteúdo prevalecem"</em>. <strong>8+ links</strong> em <span class="mono">design.md · theme.md · components.md · i18n</span> deferem a <span class="mono rose">reference/content.md</span> — que não existe.</p>
+          <p class="lead" style="margin-top:13px">Existe sim uma skill <span class="mono em">content</span> autoritativa na raiz (~600 linhas) com exatamente essas regras. <strong>Ninguém aponta para ela.</strong> As skills não compõem.</p>
+        </div>
+        <div>
+          <div class="diag">
+            <div class="srcs">
+              <div class="box"><b>CLAUDE.md portal</b>"Diretrizes de Conteúdo prevalecem"</div>
+              <div class="box"><b>design-system</b>design.md · theme.md · components.md</div>
+              <div class="box"><b>i18n/SKILL.md</b>"convenções de pt-BR"</div>
+            </div>
+            <div class="conn"><span class="ln"></span><span class="ar">▼ 8+ links</span></div>
+            <div class="box bad"><b>reference/content.md</b>❌ NÃO EXISTE em reference/</div>
+            <div class="conn dash"><span class="ln"></span><span class="ar">deveria apontar ▾</span></div>
+            <div class="box good"><b>skill 'content' (raiz)</b>✅ existe · ~600 linhas · ninguém aponta pra cá</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · EIXO A -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Eixo A · wiring &amp; autoridade</div>
+      <h2 style="margin-top:8px">Onde a autoridade <span class="rose">se perde</span></h2>
+      <div class="find">
+        <div class="fr"><div class="fid">S1</div><div class="fsv"><i class="r"></i></div><div class="ftx"><b>broken-ref:</b> 8 links para <span class="mm">content.md</span> — arquivo ausente em <span class="mm">reference/</span>.</div></div>
+        <div class="fr"><div class="fid">S2</div><div class="fsv"><i class="r"></i></div><div class="ftx"><b>authority-conflict:</b> 3 lugares reivindicam autoridade de copy; "Diretrizes" nunca resolve para arquivo concreto.</div></div>
+        <div class="fr"><div class="fid">S3</div><div class="fsv"><i class="g"></i></div><div class="ftx"><b>duplication:</b> regras (sentence case · sem "!" · 2ª pessoa · em-dash) repetidas em 4–5 lugares, nenhuma canônica.</div></div>
+        <div class="fr"><div class="fid">S4</div><div class="fsv"><i class="g"></i></div><div class="ftx"><b>discoverability:</b> 9 skills, <span class="bad">nenhum README/index</span> orientando-as.</div></div>
+        <div class="fr"><div class="fid">S5</div><div class="fsv"><i class="g"></i></div><div class="ftx"><b>ambiguity:</b> 4 skills disparam em "qualquer texto de UI" sem precedência declarada.</div></div>
+        <div class="fr"><div class="fid">S6–S8</div><div class="fsv"><i class="s"></i></div><div class="ftx"><b>low:</b> <span class="mm">name: accessibility</span> ≠ dir <span class="mm">a11y/</span> · CLAUDE.md raiz não cita skills · design.md vs content sem cross-ref.</div></div>
+      </div>
+      <div class="legend"><span><i class="r"></i>high — código errado / instrução pendurada</span><span><i class="g"></i>medium — confunde/desencaminha</span><span><i class="s"></i>low — polimento</span></div>
+    </div>
+  </section>
+
+  <!-- 5 · EIXO B -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Eixo B · vendorizadas vs autorais · precedência</div>
+      <div class="split">
+        <div class="txt">
+          <h2>Só <span class="em">shadcn-ui</span> é autoral.<br>As outras 4, genéricas.</h2>
+          <p class="lead">Sem ordem de autoridade, skills vendorizadas em inglês competem com as autorais — e algumas têm trigger agressivo o suficiente para vencer.</p>
+        </div>
+        <div>
+          <div class="find">
+            <div class="fr"><div class="fid">S9</div><div class="fsv"><i class="g"></i></div><div class="ftx"><span class="mm">modern-web-guidance</span> — autodeclarada <span class="bad">"MANDATORY FIRST"</span>; pode pré-emptar a11y/design-system/i18n com guidance que ignora Base UI + tokens.</div></div>
+            <div class="fr"><div class="fid">S10</div><div class="fsv"><i class="g"></i></div><div class="ftx"><span class="mm">shadcn</span> (≠ shadcn-ui) — assume registry/<span class="mm">--preset</span> que o projeto <b>npm-only, hand-authored</b> não usa.</div></div>
+            <div class="fr"><div class="fid">S11</div><div class="fsv"><i class="s"></i></div><div class="ftx"><span class="mm">tanstack-router</span> — desconhece o idioma obrigatório <span class="mm">nonBlockingLoader</span> (issue #2002).</div></div>
+            <div class="fr"><div class="fid">—</div><div class="fsv"><i class="e"></i></div><div class="ftx"><span class="mm">composition-patterns</span> — baixo risco, framework-agnóstico, compatível com <span class="mm">useRender</span>. Sem ação.</div></div>
+          </div>
+          <p class="lead" style="margin-top:14px; font-size:12.5px">Fix: README rebaixa explicitamente — autorais vencem para a11y/visual/copy; vendorizadas só para o que não cobrem.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · EIXO C design-system -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Eixo C · design-system</div>
+      <h2 style="margin-top:8px">Skill driftou do <span class="gold">código real</span></h2>
+      <div class="find">
+        <div class="fr"><div class="fid">DS1</div><div class="fsv"><i class="g"></i></div><div class="ftx"><b>staleness:</b> "Estrutura" omite <span class="mm">component-stack.md</span> (Base UI vs Radix) e <span class="mm">design-tokens-contrast.md</span> (única tabela WCAG).</div></div>
+        <div class="fr"><div class="fid">DS2</div><div class="fsv"><i class="g"></i></div><div class="ftx"><b>gap:</b> recipe completa de <b>Toast</b>, mas <span class="bad">não existe toast.tsx</span> nem lib de toast no package.json.</div></div>
+        <div class="fr"><div class="fid">DS3</div><div class="fsv"><i class="g"></i></div><div class="ftx"><b>contradiction:</b> "Tabler Icons aceito" — <span class="mm">@tabler/icons-react</span> <span class="bad">não está</span> no package.json (só lucide).</div></div>
+        <div class="fr"><div class="fid">DS5</div><div class="fsv"><i class="g"></i></div><div class="ftx"><b>contradiction:</b> components.md oferece <span class="mm">text-sm/text-xs</span> como alternativa; design.md/theme.md <b>proíbem</b>.</div></div>
+        <div class="fr"><div class="fid">DS6–9</div><div class="fsv"><i class="s"></i></div><div class="ftx"><b>low:</b> <span class="mm">new-york-v4</span> vs real <span class="mm">base-nova</span> · "Drawer" sem drawer.tsx · tokens não documentados · "Aponta para --primary-500" falso.</div></div>
+      </div>
+      <p class="lead" style="margin-top:14px"><strong class="rose">DS4 — possível bug real:</strong> tabela afirma <span class="mono">primary-foreground = #1f1f1f</span> "em ambos os temas"; <span class="mono">tokens.css</span> define <span class="mono">:root</span> ≈ branco. Branco sobre laranja no tema claro = ~2.9:1, <span class="rose">reprova AA</span>. Próximo slide.</p>
+    </div>
+  </section>
+
+  <!-- 7 · DS4 spotlight -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>DS4 · não é só doc — vale medir</div>
+      <div class="split">
+        <div class="txt">
+          <h2>O CTA primário<br>pode <span class="rose">reprovar AA</span></h2>
+          <p class="lead">A tabela de contraste promete um par válido em "ambos os temas". O token real contradiz no tema <strong>claro</strong>: texto quase-branco sobre laranja, exatamente o combo que a própria tabela diz reprovar.</p>
+          <p class="lead" style="margin-top:13px">Recalcular o par claro contra o token real; corrigir o token <strong>ou</strong> a tabela.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq r"></span>design-tokens-contrast.md — a afirmação</div>
+<div class="code"><span class="k">primary-foreground</span> = <span class="g">#1f1f1f</span>  <span class="c">// "em ambos os temas"</span>
+<span class="m">→ escuro sobre laranja · OK</span></div>
+          <div class="fname" style="margin-top:14px"><span class="sq e"></span>tokens.css — a realidade</div>
+<div class="code"><span class="k">:root</span> --primary-foreground: <span class="v">oklch(0.985 0 0)</span>  <span class="b">// ≈ BRANCO</span>
+<span class="k">.dark</span> --primary-foreground: <span class="m">oklch(escuro)</span>
+<span class="b">─────────────────────────────────────</span>
+<span class="b">tema claro: branco sobre laranja ≈ 2.9:1  &lt; AA (4.5:1)</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · EIXO D a11y -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Eixo D · a11y</div>
+      <div class="split">
+        <div class="txt">
+          <h2>"Compor, não reinventar" —<br>mas <span class="rose">compor o quê?</span></h2>
+          <p class="lead"><span class="rose">A1 (high):</span> a tabela APG manda compor <span class="mono">AlertDialog · Combobox · Menu · Toast · Accordion</span>, mas <strong>nenhum está wrapped</strong> no DS. Existem em <span class="mono">@base-ui/react</span>, não wrapped → o agente procura, não acha, trava.</p>
+          <p class="lead" style="margin-top:13px"><span class="sky">A2 (low):</span> reconciliar acessor pontilhado (<span class="mono">Dialog.Root</span>) com import por subpath (<span class="mono">@base-ui/react/dialog</span>).</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq r"></span>distinção que falta na skill</div>
+<div class="code"><span class="e">WRAPPED no DS</span>  <span class="m">→ @/design-system/components</span>
+  dialog · select · tooltip · popover · tabs · collapsible
+
+<span class="b">NÃO wrapped</span>    <span class="m">→ existe em @base-ui/react · wrap primeiro</span>
+  alert-dialog · combobox · menu · toast · accordion</div>
+          <p class="lead" style="margin-top:14px; font-size:12px"><span class="em">✓ honesto:</span> gate <span class="mono">jsx-a11y</span> real · disclaimer "sem axe-core" verdadeiro · tabela de contraste entregue.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · EIXO E i18n -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Eixo E · i18n</div>
+      <div class="split">
+        <div class="txt">
+          <h2>Namespaces <span class="rose">errados</span></h2>
+          <p class="lead"><span class="rose">I1 (high):</span> a skill lista <span class="mono bad">application-hub</span> (não existe) e omite <span class="mono">repo-hub</span> + <span class="mono">data-migration</span>. O agente cria/procura o arquivo errado.</p>
+          <p class="lead" style="margin-top:12px"><span class="gold">I2/I3:</span> exemplo <span class="mono">kind.pr-review</span> fabricado (real: camelCase + snake_case) · passo "registro de namespace" esquece <span class="mono">CustomTypeOptions.resources</span>.</p>
+        </div>
+        <div>
+          <div class="fname"><span class="sq r"></span>SKILL.md diz</div>
+<div class="code"><span class="m">locale, home,</span> <span class="b">application-hub</span><span class="m">, workflow-tracker,</span>
+<span class="m">assets-catalog, help</span></div>
+          <div class="fname" style="margin-top:14px"><span class="sq e"></span>src/i18n/index.ts (real)</div>
+<div class="code"><span class="m">locale, home,</span> <span class="e">repo-hub</span><span class="m">, workflow-tracker,</span>
+<span class="e">data-migration</span><span class="m">, assets-catalog, help</span></div>
+          <p class="lead" style="margin-top:13px; font-size:12px"><span class="em">✓ correto:</span> 7 JSON casam 1:1 com index.ts · pluralização <span class="mono">_one/_other</span>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · EIXO F orval -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Eixo F · orval · vendorizada genérica</div>
+      <div class="split">
+        <div class="txt">
+          <h2>A skill inteira é o<br><span class="rose">petstore upstream</span></h2>
+          <p class="lead">Zero menção a admiral/kondor, two-spec <span class="mono">tags-split</span>, mutators <span class="mono">customFetch</span>, OIDC silent-renew, <span class="mono">gen-api.sh</span> ou paths protegidos. Vende install <span class="mono">npm/yarn/pnpm/bun</span> + <span class="mono">npx orval</span> — projeto é <strong>npm-only</strong> e roda <span class="mono">npm run gen:api</span>.</p>
+          <p class="lead" style="margin-top:13px">3 <span class="rose">high</span> que se resolvem com <strong>uma</strong> intervenção: seção "Neste projeto" no topo + poda dos exemplos genéricos.</p>
+        </div>
+        <div>
+          <div class="find">
+            <div class="fr"><div class="fid">O1</div><div class="fsv"><i class="r"></i></div><div class="ftx">doc upstream genérico — zero contexto do projeto.</div></div>
+            <div class="fr"><div class="fid">O2</div><div class="fsv"><i class="r"></i></div><div class="ftx">falta o workflow real: <span class="mm">gen-api.sh</span> · auto-fix <span class="mm">claude -p</span> · paths protegidos.</div></div>
+            <div class="fr"><div class="fid">O3</div><div class="fsv"><i class="r"></i></div><div class="ftx">bloco de install errado; substituir por scripts do projeto.</div></div>
+            <div class="fr"><div class="fid">O4–O5</div><div class="fsv"><i class="g"></i></div><div class="ftx">lidera com axios/interceptors (real: fetch + OIDC) · <span class="mm">indexMockFiles</span> (real: handlers à mão).</div></div>
+            <div class="fr"><div class="fid">O6–O7</div><div class="fsv"><i class="s"></i></div><div class="ftx">linka guides inexistentes (angular/solid/hono) · description com triggers irrelevantes.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · EIXO G drift -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Eixo G · drift skill/doc ↔ código · sem gate</div>
+      <div class="split">
+        <div class="txt">
+          <h2>Nada mantém<br>doc ↔ código <span class="gold">em sincronia</span></h2>
+          <p class="lead">Vivem no CLAUDE.md/package.json, mas o agente lê como verdade. São o sintoma da causa-raiz — sem um "skills lint", o drift só volta.</p>
+        </div>
+        <div>
+          <div class="find">
+            <div class="fr"><div class="fid">G1</div><div class="fsv"><i class="g"></i></div><div class="ftx">CLAUDE.md descreve <span class="mm">gen:api:raw:admiral/:kondor</span> — <span class="bad">scripts não existem</span> no package.json.</div></div>
+            <div class="fr"><div class="fid">G2</div><div class="fsv"><i class="g"></i></div><div class="ftx">invalidações "centralizadas em <span class="mm">mutationInvalidates</span>" — <span class="bad">0 ocorrências</span> no orval.config.ts.</div></div>
+            <div class="fr"><div class="fid">G3</div><div class="fsv"><i class="s"></i></div><div class="ftx"><span class="mm">msw:init</span> descrito ≠ comando real (<span class="mm">msw init public/ --save</span>).</div></div>
+          </div>
+          <p class="lead" style="margin-top:16px; font-size:13px">Causa-raiz: <strong>docs sem teste apodrecem</strong>. O repo já tem o reflexo certo (<span class="mono">gen:api</span> roda lint+typecheck). As skills merecem o mesmo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · RESUMO SEVERIDADE -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Resumo de severidade · 27 achados deduplicados</div>
+      <h2 style="margin-top:8px">Cirúrgico, não <span class="gold">reescrita</span></h2>
+      <p class="lead" style="margin-top:12px">Nenhum achado exige reescrever skill do zero — a maioria é correção pontual + 3 decisões estruturais.</p>
+      <div class="tbl">
+        <div class="row"><div class="h"><span class="d r"></span>high · 4</div><div class="v"><b>S1 · S2 · A1 · I1 · O1 · O2 · O3</b><br><span style="color:var(--faint)">7 IDs — orval concentra 3 que se resolvem juntos (seção "Neste projeto")</span></div></div>
+        <div class="row"><div class="h"><span class="d g"></span>medium · 12</div><div class="v">S3 · S4 · S5 · S9 · S10 · DS1 · DS2 · DS3 · DS4 · DS5 · I2 · I3 · O4 · O5 · G1 · G2</div></div>
+        <div class="row"><div class="h"><span class="d s"></span>low · 11</div><div class="v">S6 · S7 · S8 · S11 · DS6 · DS7 · DS8 · DS9 · A2 · I4 · O6 · O7 · G3</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · PLANO DE REMEDIAÇÃO -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Plano ranqueado · impacto ÷ esforço</div>
+      <h2 style="margin-top:8px">Quatro quick-wins de <span class="gold">alta alavancagem</span></h2>
+      <ul class="clean">
+        <li><span class="n em">1</span><span><b>Resolver o trail de <span class="mono">content</span></b> — declarar a skill raiz canônica; criar <span class="mono">reference/content.md</span> ponteiro ou repontar os 8 links. <span class="tag">mata 2 high + 1 medium</span></span></li>
+        <li><span class="n em">2</span><span><b>Corrigir namespaces i18n</b> — <span class="mono">application-hub→repo-hub</span>, add <span class="mono">data-migration</span>. <span class="tag">3 linhas, mata 1 high</span></span></li>
+        <li><span class="n em">3</span><span><b>Atualizar "Estrutura" do design-system</b> — add <span class="mono">component-stack.md</span> + <span class="mono">design-tokens-contrast.md</span>.</span></li>
+        <li><span class="n em">4</span><span><b>Marcar primitivos não-wrapped</b> — nota em a11y + design-system. <span class="tag">mata o high de a11y + Toast</span></span></li>
+        <li><span class="n gold">5–6</span><span><b>Estrutural:</b> criar <span class="mono">.claude/skills/README.md</span> (mapa + ordem de autoridade) · reescrever <span class="mono">orval</span> com seção "Neste projeto".</span></li>
+        <li><span class="n rose">7</span><span><b>Skills lint no CI</b> — falha se link aponta para arquivo ausente, namespace diverge de <span class="mono">index.ts</span>, token não existe em <span class="mono">tokens.css</span> ou script citado não está no <span class="mono">package.json</span>. <span class="tag">impede o drift de voltar</span></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 14 · ESCALABILIDADE -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>A meta-lição · escalabilidade</div>
+      <h2 style="margin-top:8px">O conteúdo é bom. Falta <span class="gold">infraestrutura para mantê-lo verdadeiro.</span></h2>
+      <div class="grid3">
+        <div class="card gold">
+          <div class="num">INVESTIMENTO 1</div>
+          <h3>Fonte única + ponteiros, nunca cópias</h3>
+          <ul><li>cada regra vive em <b>um</b> arquivo</li><li>hoje copy existe em <b>5 lugares</b></li><li>a 6ª cópia é a 1ª a divergir</li></ul>
+        </div>
+        <div class="card gold">
+          <div class="num">INVESTIMENTO 2</div>
+          <h3>Gate executável — o "skills lint"</h3>
+          <ul><li>links · namespaces · tokens · scripts</li><li>verificados em <b>CI</b></li><li>maior ROI de longo prazo</li></ul>
+        </div>
+        <div class="card gold">
+          <div class="num">INVESTIMENTO 3</div>
+          <h3>Precedência explícita entre skills</h3>
+          <ul><li>já são <b>4 vendorizadas de 9</b></li><li>sem ordem = ruído ativo</li><li>README com ordem declarada</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · CLOSE / ANEXO -->
+  <section class="slide">
+    <div class="inner">
+      <div class="eyebrow"><span class="tick"></span>Verificado-correto · alta confiança · não mexer</div>
+      <h2 style="margin-top:8px">Para não gerar <span class="em">retrabalho</span></h2>
+      <p class="lead" style="margin-top:12px">Estas afirmações das skills <strong>batem</strong> com o código — confirmadas arquivo a arquivo.</p>
+      <ul class="checks">
+        <li><b>components.json</b> — base-nova · neutral · lucide · aliases corretos</li>
+        <li><b>tokens.css</b> — todos os tokens nomeados existem (cat-* · surface* · code* · chart-1..5)</li>
+        <li><b>index.css</b> — Inter + Roboto + Roboto Mono · importa tokens.css</li>
+        <li><b>@base-ui/react@1.5.0</b> presente, sem Radix · cmdk consistente</li>
+        <li><b>a11y</b> — gate jsx-a11y real · disclaimer honesto · tabela entregue</li>
+        <li><b>i18n</b> — estrutura index.ts/types.d.ts · 7 JSON 1:1 · pluralização</li>
+      </ul>
+      <p class="lead" style="margin-top:20px">As skills compõem mal porque o <strong class="gold">wiring nunca resolve</strong> e <strong class="gold">nada testa</strong> a verdade. Resolva o trail, declare a precedência, ligue o lint — e o conteúdo bom para de apodrecer.</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="hud">
+  <span>auditoria de skills · portal mgmtplane · 2026-06-23</span>
+  <div class="ctrl">
+    <button id="prev" aria-label="Anterior">‹</button>
+    <span class="count" id="count">01 / 15</span>
+    <button id="next" aria-label="Próximo">›</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var n=slides.length, i=0;
+  var pbar=document.getElementById('pbar'), count=document.getElementById('count');
+  var reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function pad(x){return (x<10?'0':'')+x;}
+  var coverDone=false;
+  function runCover(){
+    var dots=document.querySelectorAll('#coverRail .dot'), segs=document.querySelectorAll('#coverRail .seg'), lbls=document.querySelectorAll('#coverRail .lbl');
+    if(reduce){dots.forEach(function(d){d.classList.add('lit');});lbls.forEach(function(l){l.classList.add('lit');});segs.forEach(function(s){s.classList.add('lit');});return;}
+    if(coverDone)return; coverDone=true;
+    dots.forEach(function(d,k){ setTimeout(function(){ d.classList.add('lit'); if(lbls[k])lbls[k].classList.add('lit'); if(segs[k])segs[k].classList.add('lit'); }, 300*k+220); });
+  }
+  function show(idx){
+    i=Math.max(0,Math.min(n-1,idx));
+    slides.forEach(function(s,k){s.classList.toggle('active',k===i);});
+    count.textContent=pad(i+1)+' / '+pad(n);
+    pbar.style.width=((i+1)/n*100)+'%';
+    if(i===0)runCover();
+  }
+  function next(){show(i+1);} function prev(){show(i-1);}
+  document.getElementById('next').addEventListener('click',next);
+  document.getElementById('prev').addEventListener('click',prev);
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home')show(0); else if(e.key==='End')show(n-1);
+  });
+  var x0=null;
+  document.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',function(e){ if(x0===null)return; var dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>50){dx<0?next():prev();} x0=null; },{passive:true});
+  show(0);
+})();
+</script>
+</body>
+</html>
