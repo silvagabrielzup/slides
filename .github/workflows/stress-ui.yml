@@ -1,0 +1,220 @@
+name: 🧪 UI/UX Stress Test
+
+# Workflow criado apenas para estressar a visualização do GitHub Actions.
+# Não faz build/deploy real — cada step é inofensivo (echo/sleep).
+# Objetivo: entender como o GitHub renderiza jobs, steps, matrizes,
+# grupos, annotations, summaries, nomes longos, emojis, etc.
+
+on:
+  workflow_dispatch:
+    inputs:
+      atraso:
+        description: "Segundos de sleep por step (para ver a UI 'em progresso')"
+        required: false
+        default: "1"
+      falhar:
+        description: "Forçar uma falha no meio para ver a UI de erro? (true/false)"
+        required: false
+        default: "false"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # JOB 1 — 30+ steps num único job. É aqui que você vê o scroll,
+  # o colapso de steps, os tempos de execução e os nomes longos.
+  # ────────────────────────────────────────────────────────────────
+  muitos-steps:
+    name: 🧱 Job com 30+ steps
+    runs-on: ubuntu-latest
+    steps:
+      - name: 01 · Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: 02 · Passo curto
+        run: echo "ok"
+
+      - name: 03 · Passo com nome intencionalmente muito longo para ver como o GitHub trunca ou quebra a linha na barra lateral e no cabeçalho do step
+        run: echo "nome longo"
+
+      - name: 04 · Emojis 🚀🔥✨🎯🧪🐛📦🔧
+        run: echo "emojis renderizam?"
+
+      - name: 05 · Multi-line output
+        run: |
+          echo "linha 1"
+          echo "linha 2"
+          echo "linha 3"
+          echo "linha 4"
+
+      - name: 06 · Grupos (::group::)
+        run: |
+          echo "::group::Bloco recolhível A"
+          echo "conteúdo A1"
+          echo "conteúdo A2"
+          echo "::endgroup::"
+          echo "::group::Bloco recolhível B"
+          echo "conteúdo B1"
+          echo "::endgroup::"
+
+      - name: 07 · Warning annotation
+        run: echo "::warning title=Atenção::Isto é um aviso de teste"
+
+      - name: 08 · Notice annotation
+        run: echo "::notice title=Info::Isto é um notice de teste"
+
+      - name: 09 · Debug message
+        run: echo "::debug::mensagem de debug (só aparece com ACTIONS_STEP_DEBUG)"
+
+      - name: 10 · Sleep configurável
+        run: sleep ${{ github.event.inputs.atraso || '1' }}
+
+      - name: 11 · Variável de ambiente
+        run: echo "RUNNER_OS=$RUNNER_OS ; GITHUB_SHA=$GITHUB_SHA"
+
+      - name: 12 · Cores ANSI no log
+        run: |
+          echo -e "\033[31mvermelho\033[0m \033[32mverde\033[0m \033[33mamarelo\033[0m \033[34mazul\033[0m"
+
+      - name: 13 · Tabela em texto
+        run: |
+          printf "%-10s | %-10s | %-10s\n" "col1" "col2" "col3"
+          printf "%-10s | %-10s | %-10s\n" "a" "b" "c"
+
+      - name: 14 · Escrevendo no Step Summary
+        run: |
+          echo "## 📊 Resumo do Step 14" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Item | Valor |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Steps | 30+ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Objetivo | Stress de UI |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 15 · Definindo output
+        id: gerador
+        run: echo "resultado=42" >> "$GITHUB_OUTPUT"
+
+      - name: 16 · Lendo output do step anterior
+        run: echo "O resultado foi ${{ steps.gerador.outputs.resultado }}"
+
+      - name: 17 · Passo condicional (roda sempre)
+        if: always()
+        run: echo "if always()"
+
+      - name: 18 · Passo condicional (só em push)
+        if: github.event_name == 'push'
+        run: echo "isto rodou por push"
+
+      - name: 19 · Passo condicional (só em dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "isto rodou por workflow_dispatch"
+
+      - name: 20 · Loop com progresso
+        run: |
+          for i in $(seq 1 5); do
+            echo "iteração $i/5"
+            sleep 1
+          done
+
+      - name: 21 · Muitas linhas de log (100)
+        run: for i in $(seq 1 100); do echo "log line $i"; done
+
+      - name: 22 · Passo bem rápido A
+        run: echo a
+      - name: 23 · Passo bem rápido B
+        run: echo b
+      - name: 24 · Passo bem rápido C
+        run: echo c
+      - name: 25 · Passo bem rápido D
+        run: echo d
+      - name: 26 · Passo bem rápido E
+        run: echo e
+
+      - name: 27 · Sleep mais longo (5s)
+        run: sleep 5
+
+      - name: "28 · Nome com \"aspas\", <tags> & caracteres especiais: 100% #hash"
+        run: echo "caracteres especiais no nome do step"
+
+      - name: 29 · Emoji + acentuação — çãõáéíóú Ñ ß
+        run: echo "unicode"
+
+      - name: 30 · Falha opcional (controlada pelo input)
+        if: github.event.inputs.falhar == 'true'
+        run: |
+          echo "::error title=Falha proposital::Você pediu para falhar"
+          exit 1
+
+      - name: 31 · Warning colorido no summary
+        run: echo "> ⚠️ **Aviso:** este é o step 31." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 32 · Último step do job
+        if: always()
+        run: echo "fim do job muitos-steps ✅"
+
+  # ────────────────────────────────────────────────────────────────
+  # JOB 2 — Matriz. Mostra como o GitHub agrupa N execuções paralelas
+  # do mesmo job na barra lateral.
+  # ────────────────────────────────────────────────────────────────
+  matriz:
+    name: 🔀 Matriz (${{ matrix.os }} / node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [linux, macos-sim, windows-sim]
+        node: [18, 20, 22]
+    steps:
+      - name: Identificar combinação
+        run: echo "Rodando em ${{ matrix.os }} com node ${{ matrix.node }}"
+      - name: Trabalho simulado
+        run: sleep $(( (RANDOM % 5) + 1 ))
+      - name: Finalizar
+        run: echo "combinação ${{ matrix.os }}/${{ matrix.node }} concluída"
+
+  # ────────────────────────────────────────────────────────────────
+  # JOB 3 — Jobs paralelos independentes. Vê-se vários círculos girando
+  # ao mesmo tempo no diagrama de execução.
+  # ────────────────────────────────────────────────────────────────
+  paralelo-a:
+    name: ⚡ Paralelo A
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "A começou"; sleep 3; echo "A terminou"
+
+  paralelo-b:
+    name: ⚡ Paralelo B
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "B começou"; sleep 6; echo "B terminou"
+
+  paralelo-c:
+    name: ⚡ Paralelo C
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "C começou"; sleep 9; echo "C terminou"
+
+  # ────────────────────────────────────────────────────────────────
+  # JOB 4 — Depende dos anteriores. Mostra o grafo de dependências
+  # (needs) e como a UI desenha as setas entre jobs.
+  # ────────────────────────────────────────────────────────────────
+  agregador:
+    name: 🎯 Agregador final (needs)
+    runs-on: ubuntu-latest
+    needs: [muitos-steps, matriz, paralelo-a, paralelo-b, paralelo-c]
+    if: always()
+    steps:
+      - name: Status dos jobs anteriores
+        run: |
+          echo "muitos-steps: ${{ needs.muitos-steps.result }}"
+          echo "matriz:       ${{ needs.matriz.result }}"
+          echo "paralelo-a:   ${{ needs.paralelo-a.result }}"
+          echo "paralelo-b:   ${{ needs.paralelo-b.result }}"
+          echo "paralelo-c:   ${{ needs.paralelo-c.result }}"
+      - name: Resumo final no Summary
+        run: |
+          echo "## 🎯 Stress test concluído" >> "$GITHUB_STEP_SUMMARY"
+          echo "Todos os jobs foram executados. Verifique a aba de visualização." >> "$GITHUB_STEP_SUMMARY"
